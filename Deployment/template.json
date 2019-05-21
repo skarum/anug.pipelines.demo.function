@@ -40,7 +40,7 @@
         },
         "suffix": "[concat('-', parameters('envCode'))]",
         "functionAppName": "[concat(parameters('resourceNamePrefix'),'-', parameters('functionName'), '-', parameters('envCode'))]",
-        "hostingPlanName": "[concat(parameters('resourceNamePrefix'),'-sp-,' parameters('functionName') , '-', parameters('envCode'))]",
+        "hostingPlanName": "[concat(parameters('resourceNamePrefix'),'-sp-',  parameters('functionName') , '-', parameters('envCode'))]",
         "storageAccountName": "[concat(parameters('resourceNamePrefix'), 'sto', parameters('functionName'), parameters('envCode'))]",
         "storageAccountid": "[concat(resourceGroup().id,'/providers/','Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
     },
