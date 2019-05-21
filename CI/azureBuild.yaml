@@ -23,6 +23,7 @@ stages:
       displayName: 'Restore packages'
       inputs:
         command: 'restore'
+        vstsFeed: 'AnugPipelines'
         projects: '**/*.csproj'
 
     - task: DotNetCoreCLI@2
