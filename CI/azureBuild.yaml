@@ -1,0 +1,53 @@
+name: $(date:yyyyMMdd)$(rev:.r)-$(SourceBranchName)
+
+variables: 
+    PackageCsproj: $(Build.SourcesDirectory)/**/*NugetPackage.csproj
+    BuildConfiguration: 'Release'
+    
+stages:
+- stage: Build
+  jobs: 
+  - job: 'Build'
+
+    pool:
+      vmImage: 'ubuntu-16.04'
+
+    variables:
+      nugetVersion: $[ dependencies.Setversion.outputs['outputNugetVersion.nugetVersion'] ]
+
+    steps:
+    - bash: echo $(nugetVersion)
+      displayName: 'Write nuget version from Linux'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore packages'
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'Build solution'
+      inputs:
+        command: 'build'
+        projects: '**/*.sln'
+        arguments: '--configuration $(BuildConfiguration)'
+
+    - bash: echo 'We have no tests :-/'
+      displayName: 'Run test'
+
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish'
+      inputs:
+        command: publish
+        publishWebProjects: false
+        projects: '**/AnugFunc.csproj'
+        arguments: '-c $(BuildConfiguration) --output $(build.artifactstagingdirectory)'
+    
+    - task: CopyFiles@2
+      displayName: 'Copy deployment files to artifact staging directory'
+      inputs:
+        SourceFolder: '$(Build.SourcesDirectory)/Deployment'
+        Contents: '**'
+        TargetFolder: '$(build.artifactstagingdirectory)/deploy'
+        
+    - task: PublishBuildArtifacts@1

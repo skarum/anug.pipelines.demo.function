@@ -1,0 +1,117 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "envCode": {
+            "type": "string"
+        },
+        "functionName": {
+            "type": "string",
+            "defaultValue": "function"
+        },
+        "deploymentId": {
+            "type": "string",
+            "defaultValue": "unknown"
+        },
+        "environmentName": {
+            "type": "string",
+            "defaultValue": "unknown"
+        },
+        "resourceNamePrefix": {
+            "type": "string",
+            "defaultValue": "anug"
+        },
+        "storageAccountType": {
+            "type": "string",
+            "defaultValue": "Standard_LRS",
+            "allowedValues": [
+                "Standard_LRS",
+                "Standard_GRS",
+                "Standard_RAGRS"
+            ],
+            "metadata": {
+                "description": "Storage Account type"
+            }
+        }
+    },
+    "variables": {
+        "tags": {
+            "App": "AnugDemo"
+        },
+        "suffix": "[concat('-', parameters('envCode'))]",
+        "functionName": "[concat('gf-fn-sre-monitor-deadletter-', parameters('envCode'))]",
+        "functionAppName": "[concat(parameters('resourceNamePrefix'),'-function-', parameters('envCode'))]",
+        "hostingPlanName": "[concat(parameters('resourceNamePrefix'),'-sp-function-', parameters('envCode'))]",
+        "storageAccountName": "[concat(parameters('resourceNamePrefix'), 'sto', 'function', parameters('envCode'))]",
+        "storageAccountid": "[concat(resourceGroup().id,'/providers/','Microsoft.Storage/storageAccounts/', variables('storageAccountName'))]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "name": "[variables('storageAccountName')]",
+            "apiVersion": "2016-12-01",
+            "location": "[resourceGroup().location]",
+            "kind": "Storage",
+            "sku": {
+                "name": "[parameters('storageAccountType')]"
+            },
+            "tags": "[variables('tags')]"
+        },
+        {
+            "type": "Microsoft.Web/serverfarms",
+            "apiVersion": "2015-04-01",
+            "name": "[variables('hostingPlanName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "name": "[variables('hostingPlanName')]",
+                "computeMode": "Dynamic",
+                "sku": "Dynamic"
+            }
+        },
+        {
+            "name": "[variables('functionAppName')]",
+            "type": "Microsoft.Web/sites",
+            "apiVersion": "2016-08-01",
+            "location": "[resourceGroup().location]",
+            "tags": "[variables('tags')]",
+            "dependsOn": [],
+            "kind": "functionapp",
+            "properties": {
+                "name": "[variables('functionAppName')]",
+                "siteConfig": {
+                    "appSettings": [
+                        {
+                            "name": "AzureWebJobsDashboard",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "AzureWebJobsStorage",
+                            "value": "[concat('DefaultEndpointsProtocol=https;AccountName=', variables('storageAccountName'), ';AccountKey=', listKeys(variables('storageAccountid'),'2015-05-01-preview').key1)]"
+                        },
+                        {
+                            "name": "FUNCTIONS_WORKER_RUNTIME",
+                            "value": "dotnet"
+                        },
+                        {
+                            "name": "FUNCTIONS_EXTENSION_VERSION",
+                            "value": "~2"
+                        },
+                        {
+                            "name": "deploymentId",
+                            "value": "[parameters('deploymentId')]"
+                        },
+                        {
+                            "name": "environmentName",
+                            "value": "[parameters('environmentName')]"
+                        }
+                    ],
+                    "connectionStrings": [],
+                    "alwaysOn": false,
+                    "webSocketsEnabled": false
+                },
+                "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', variables('hostingPlanName'))]"
+            }
+        }
+    ],
+    "outputs": {}
+}
